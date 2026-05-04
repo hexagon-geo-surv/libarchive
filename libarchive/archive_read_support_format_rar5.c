@@ -3887,7 +3887,7 @@ static int do_uncompress_file(struct archive_read* a) {
 		 * files). */
 		while(1) {
 			ret = process_block(a);
-			if(ret == ARCHIVE_EOF || ret == ARCHIVE_FATAL)
+			if(ret != ARCHIVE_OK)
 				return ret;
 
 			if(rar->cstate.last_write_ptr ==
