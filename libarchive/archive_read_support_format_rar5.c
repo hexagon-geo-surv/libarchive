@@ -3037,13 +3037,10 @@ static int parse_filter(struct archive_read* ar, const uint8_t* p) {
 	filter_type >>= 13;
 	skip_bits(rar, 3);
 
-	/* Perform some sanity checks on this filter parameters. Note that we
-	 * allow only DELTA, E8/E9 and ARM filters here, because rest of
-	 * filters are not used in RARv5. */
+	/* Perform some sanity checks on this filter parameters. */
 
 	if(block_length < 4 ||
 	    block_length > 0x400000 ||
-	    filter_type > FILTER_ARM ||
 	    !is_valid_filter_block_start(rar, block_start) ||
 	    (rar->cstate.window_size > 0 &&
 	     (ssize_t)block_length > rar->cstate.window_size >> 1))
@@ -3913,11 +3910,9 @@ static int do_uncompress_file(struct archive_read* a) {
 	ret = apply_filters(a);
 	if(ret == ARCHIVE_RETRY) {
 		return ARCHIVE_OK;
-	} else if(ret == ARCHIVE_FATAL) {
-		return ARCHIVE_FATAL;
+	} else if(ret != ARCHIVE_OK) {
+		return ret;
 	}
-
-	/* If apply_filters() will return ARCHIVE_OK, we can continue here. */
 
 	if(cdeque_size(&rar->cstate.filters) > 0) {
 		/* Check if we can write something before hitting first
