@@ -119,6 +119,7 @@ IF(ENABLE_TEST)
     test_read_format_cab.c
     test_read_format_cab_filename.c
     test_read_format_cab_lzx_oob.c
+    test_read_format_cab_mszip_oob.c
     test_read_format_cab_skip_malformed.c
     test_read_format_cpio_afio.c
     test_read_format_cpio_bin.c
@@ -177,6 +178,7 @@ IF(ENABLE_TEST)
     test_read_format_rar_overflow.c
     test_read_format_rar5.c
     test_read_format_rar5_bad_filter.c
+    test_read_format_rar5_bad_tables.c
     test_read_format_rar5_block_hdr_fail_loop.c
     test_read_format_rar5_loop_bug.c
     test_read_format_raw.c
@@ -347,7 +349,7 @@ IF(ENABLE_TEST)
   # Generate list.h by grepping DEFINE_TEST() lines out of the C sources.
   #
   GENERATE_LIST_H(${CMAKE_CURRENT_BINARY_DIR}/list.h
-    ${CMAKE_CURRENT_LIST_FILE} ${libarchive_test_SOURCES})
+    ${CMAKE_CURRENT_LIST_FILE} libarchive_test ${libarchive_test_SOURCES})
   SET_PROPERTY(DIRECTORY APPEND PROPERTY INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -364,7 +366,7 @@ IF(ENABLE_TEST)
     SET_TESTS_PROPERTIES(libarchive_${_testname} PROPERTIES SKIP_RETURN_CODE 2)
   ENDMACRO (DEFINE_TEST _testname)
 
-  INCLUDE(${CMAKE_CURRENT_BINARY_DIR}/list.h)
+  INCLUDE(${CMAKE_CURRENT_BINARY_DIR}/list.h OPTIONAL)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/test_utils)
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/libarchive/test)

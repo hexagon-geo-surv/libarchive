@@ -485,6 +485,7 @@ libarchive_test_SOURCES= \
 	libarchive/test/test_read_format_cab.c \
 	libarchive/test/test_read_format_cab_filename.c \
 	libarchive/test/test_read_format_cab_lzx_oob.c \
+	libarchive/test/test_read_format_cab_mszip_oob.c \
 	libarchive/test/test_read_format_cab_skip_malformed.c \
 	libarchive/test/test_read_format_cpio_afio.c \
 	libarchive/test/test_read_format_cpio_bin.c \
@@ -543,6 +544,7 @@ libarchive_test_SOURCES= \
 	libarchive/test/test_read_format_rar_overflow.c \
 	libarchive/test/test_read_format_rar5.c \
 	libarchive/test/test_read_format_rar5_bad_filter.c \
+	libarchive/test/test_read_format_rar5_bad_tables.c \
 	libarchive/test/test_read_format_rar5_block_hdr_fail_loop.c \
 	libarchive/test/test_read_format_rar5_loop_bug.c \
 	libarchive/test/test_read_format_raw.c \
@@ -1010,6 +1012,7 @@ libarchive_test_EXTRA_DIST=\
 	libarchive/test/test_read_format_rar5_block_size_is_too_small.rar.uu \
 	libarchive/test/test_read_format_rar5_decode_number_out_of_bounds_read.rar.uu \
 	libarchive/test/test_read_format_rar5_window_buf_and_size_desync.rar.uu \
+	libarchive/test/test_read_format_rar5_bad_tables.rar.uu \
 	libarchive/test/test_read_format_rar5_bad_window_sz_in_mltarc_file.rar.uu \
 	libarchive/test/test_read_format_rar5_data_ready_pointer_leak.rar.uu \
 	libarchive/test/test_read_format_raw.bufr.uu \
