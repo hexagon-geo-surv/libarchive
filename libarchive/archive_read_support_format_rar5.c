@@ -3200,7 +3200,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 				    ARCHIVE_ERRNO_PROGRAMMER,
 				    "Failed to decode the code length");
 
-				return ARCHIVE_FAILED;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 			}
 
 			if(ARCHIVE_OK != decode_number(a, &rar->cstate.dd, p,
@@ -3210,7 +3210,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 				    ARCHIVE_ERRNO_PROGRAMMER,
 				    "Failed to decode the distance slot");
 
-				return ARCHIVE_FAILED;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 			}
 
 			if(dist_slot < 4) {
@@ -3255,7 +3255,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 						    "Failed to decode the "
 						    "distance slot");
 
-						return ARCHIVE_FAILED;
+						return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 					}
 
 					if(dist >= INT_MAX - low_dist - 1) {
@@ -3265,7 +3265,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 						    ARCHIVE_ERRNO_FILE_FORMAT,
 						    "Distance pointer "
 						    "overflow");
-						return ARCHIVE_FAILED;
+						return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 					}
 
 					dist += low_dist;
@@ -3300,7 +3300,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 			rar->cstate.last_len = len;
 
 			if(ARCHIVE_OK != copy_string(a, len, dist))
-				return ARCHIVE_FATAL;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 
 			continue;
 		} else if(num == 256) {
@@ -3316,7 +3316,7 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 				    rar->cstate.last_len,
 				    rar->cstate.dist_cache[0]))
 				{
-					return ARCHIVE_FATAL;
+					return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 				}
 			}
 
@@ -3331,18 +3331,18 @@ static int do_uncompress_block(struct archive_read* a, const uint8_t* p) {
 
 			if(ARCHIVE_OK != decode_number(a, &rar->cstate.rd, p,
 			    &len_slot)) {
-				return ARCHIVE_FAILED;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 			}
 
 			len = decode_code_length(a, rar, p, len_slot);
 			if (len == -1) {
-				return ARCHIVE_FAILED;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 			}
 
 			rar->cstate.last_len = len;
 
 			if(ARCHIVE_OK != copy_string(a, len, dist))
-				return ARCHIVE_FATAL;
+				return rar->main.solid ? ARCHIVE_FATAL : ARCHIVE_FAILED;
 
 			continue;
 		}
