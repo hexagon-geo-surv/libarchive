@@ -3513,6 +3513,7 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 	if(!rar->vol.push_buf) {
 		archive_set_error(&a->archive, ENOMEM,
 		    "Can't allocate memory for a merge block buffer");
+		rar->cstate.switch_multivolume = 0;
 		return ARCHIVE_FATAL;
 	}
 
@@ -3531,14 +3532,19 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 		    block_size - partial_offset);
 
 		if(cur_block_size == 0) {
+			/* bytes_remaining is 0 at the wrong point in the merge
+			 * loop, indicating corrupt volume accounting. */
 			archive_set_error(&a->archive,
 			    ARCHIVE_ERRNO_FILE_FORMAT,
 			    "Encountered block size == 0 during block merge");
-			return ARCHIVE_FAILED;
+			rar->cstate.switch_multivolume = 0;
+			return ARCHIVE_FATAL;
 		}
 
-		if(!read_ahead(a, cur_block_size, &lp))
+		if(!read_ahead(a, cur_block_size, &lp)) {
+			rar->cstate.switch_multivolume = 0;
 			return ARCHIVE_EOF;
+		}
 
 		/* Sanity check; there should never be a situation where this
 		 * function reads more data than the block's size. */
@@ -3546,6 +3552,7 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 			archive_set_error(&a->archive,
 			    ARCHIVE_ERRNO_PROGRAMMER,
 			    "Consumed too much data when merging blocks");
+			rar->cstate.switch_multivolume = 0;
 			return ARCHIVE_FATAL;
 		}
 
@@ -3555,8 +3562,12 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 		memcpy(&rar->vol.push_buf[partial_offset], lp, cur_block_size);
 
 		/* Advance the stream read pointer by this block chunk size. */
-		if(ARCHIVE_OK != consume(a, cur_block_size))
-			return ARCHIVE_EOF;
+		if(ARCHIVE_OK != consume(a, cur_block_size)) {
+			/* Data was copied but stream pointer didn't advance;
+			 * stream position is unrecoverable. */
+			rar->cstate.switch_multivolume = 0;
+			return ARCHIVE_FATAL;
+		}
 
 		/* Update the pointers. `partial_offset` contains information
 		 * about the sum of merged block chunks. */
@@ -3577,6 +3588,7 @@ static int merge_block(struct archive_read* a, ssize_t block_size,
 			ret = advance_multivolume(a);
 			rar->merge_mode--;
 			if(ret != ARCHIVE_OK) {
+				rar->cstate.switch_multivolume = 0;
 				return ret;
 			}
 		}
