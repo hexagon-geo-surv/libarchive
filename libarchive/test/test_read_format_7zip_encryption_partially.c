@@ -68,7 +68,7 @@ DEFINE_TEST(test_read_format_7zip_encryption_partially)
 		assertEqualInt(2, archive_file_count(a));
 
 		/* End of archive. */
-		assertEqualIntA(a, ARCHIVE_FATAL, archive_read_next_header(a, &ae));
+		assertEqualIntA(a, ARCHIVE_EOF, archive_read_next_header(a, &ae));
 	}
 
 	/* Verify archive format. */
