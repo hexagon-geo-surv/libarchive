@@ -26,7 +26,6 @@
 #include "test_fuzz_consumer.h"
 
 #include <stdlib.h>
-#include <sys/stat.h>
 
 /*
  * Replay a fuzzer binary through the XAR writer, matching the protocol
@@ -99,7 +98,6 @@ replay_xar_writer(const char *refname)
 		const char *path;
 		uint8_t ftype;
 		uint16_t raw_mode;
-		mode_t mode;
 		int64_t file_size = 0;
 
 		archive_entry_clear(entry);
@@ -112,12 +110,12 @@ replay_xar_writer(const char *refname)
 		ftype = fuzz_consume_byte(&consumer) % 4;
 		raw_mode = fuzz_consume_u16(&consumer) & 07777;
 		switch (ftype) {
-		case 0: mode = raw_mode | S_IFREG; break;
-		case 1: mode = raw_mode | S_IFDIR; break;
-		case 2: mode = raw_mode | S_IFLNK; break;
-		default: mode = raw_mode | S_IFCHR; break;
+		case 0: archive_entry_set_filetype(entry, AE_IFREG); break;
+		case 1: archive_entry_set_filetype(entry, AE_IFDIR); break;
+		case 2: archive_entry_set_filetype(entry, AE_IFLNK); break;
+		default: archive_entry_set_filetype(entry, AE_IFCHR); break;
 		}
-		archive_entry_set_mode(entry, mode);
+		archive_entry_set_perm(entry, raw_mode);
 
 		archive_entry_set_uname(entry,
 		    fuzz_consume_string(&consumer, 32));
@@ -132,12 +130,12 @@ replay_xar_writer(const char *refname)
 		archive_entry_set_ctime(entry,
 		    fuzz_consume_i64(&consumer), 0);
 
-		if ((mode & S_IFMT) == S_IFREG) {
+		if (ftype == 0) {
 			file_size = fuzz_consume_byte(&consumer) % 200;
 			archive_entry_set_size(entry, file_size);
 		}
 
-		if ((mode & S_IFMT) == S_IFLNK)
+		if (ftype == 2)
 			archive_entry_set_symlink(entry,
 			    fuzz_consume_string(&consumer, 64));
 
