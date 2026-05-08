@@ -823,8 +823,8 @@ RelativeMonth(time_t Start, time_t Timezone, time_t RelMonth)
  */
 static uint64_t
 consume_unsigned_number(const char **in) {
-	const static uint64_t limit = (UINT64_MAX / 10);
-	const static uint64_t final_digit = (UINT64_MAX % 10);
+	static const uint64_t limit = (UINT64_MAX / 10);
+	static const uint64_t final_digit = (UINT64_MAX % 10);
 
 	uint64_t value = 0;
 	unsigned char c;
