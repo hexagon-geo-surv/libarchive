@@ -388,7 +388,7 @@ static int	rd_contents_init(struct archive_read *,
 static int	rd_contents(struct archive_read *, const void **,
 		    size_t *, size_t *, uint64_t);
 static uint64_t	atol10(const char *, size_t);
-static int64_t	atol8(const char *, size_t);
+static uint64_t	atol8(const char *, size_t);
 static size_t	atohex(unsigned char *, size_t, const char *, size_t);
 static time_t	parse_time(const char *p, size_t n);
 static int	heap_add_entry(struct archive_read *a,
@@ -1089,10 +1089,10 @@ atol10(const char *p, size_t char_cnt)
 	return (l);
 }
 
-static int64_t
+static uint64_t
 atol8(const char *p, size_t char_cnt)
 {
-	int64_t l;
+	uint64_t l;
 	int digit;
 
 	if (char_cnt == 0)
