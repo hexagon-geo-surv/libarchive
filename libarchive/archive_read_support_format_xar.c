@@ -1866,6 +1866,7 @@ static void
 xattr_free(struct xattr *xattr)
 {
 	archive_string_free(&(xattr->name));
+	archive_string_free(&(xattr->fstype));
 	free(xattr);
 }
 
