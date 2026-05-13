@@ -421,7 +421,7 @@ static void	unknowntag_end(struct xar *, const char *);
 static int	xml_start(struct archive_read *,
     const char *, struct xmlattr_list *);
 static void	xml_end(void *, const char *);
-static void	xml_data(void *, const char *, size_t);
+static int	xml_data(void *, const char *, size_t);
 static int	xml_parse_file_flags(struct xar *, const char *);
 static int	xml_parse_file_ext2(struct xar *, const char *);
 #if defined(HAVE_LIBXML_XMLREADER_H)
@@ -2673,7 +2673,7 @@ is_string(const char *known, const char *data, size_t len)
 	return memcmp(data, known, len);
 }
 
-static void
+static int
 xml_data(void *userData, const char *s, size_t len)
 {
 	struct archive_read *a;
@@ -2703,7 +2703,7 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	}
 	if (xar->file == NULL)
-		return;
+		return (ARCHIVE_OK);
 
 	switch (xar->xmlsts) {
 	case FILE_NAME:
@@ -2907,6 +2907,8 @@ xml_data(void *userData, const char *s, size_t len)
 	case UNKNOWN:
 		break;
 	}
+
+	return (ARCHIVE_OK);
 }
 
 /*
@@ -3205,7 +3207,12 @@ xml2_read_toc(struct archive_read *a)
 			break;
 		case XML_READER_TYPE_TEXT:
 			value = (const char *)xmlTextReaderConstValue(reader);
-			xml_data(a, value, strlen(value));
+			r = xml_data(a, value, strlen(value));
+			if (r != ARCHIVE_OK) {
+				xmlFreeTextReader(reader);
+				xmlCleanupParser();
+				return (r);
+			}
 			break;
 		case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
 		default:
@@ -3285,7 +3292,10 @@ expat_data_cb(void *userData, const XML_Char *s, int len)
 {
 	struct expat_userData *ud = (struct expat_userData *)userData;
 
-	xml_data(ud->archive, s, (size_t)len);
+	if (ud->state != ARCHIVE_OK)
+		return;
+
+	ud->state = xml_data(ud->archive, s, (size_t)len);
 }
 
 static int
@@ -3638,7 +3648,11 @@ xmllite_read_toc(struct archive_read *a)
 				goto out;
 			}
 
-			xml_data(a, as.s, archive_strlen(&as));
+			r = xml_data(a, as.s, archive_strlen(&as));
+			if (r != ARCHIVE_OK) {
+				/* xml_data sets an appropriate error */
+				goto out;
+			}
 			archive_string_free(&as);
 
 		case XmlNodeType_None:
