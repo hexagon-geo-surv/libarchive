@@ -387,8 +387,7 @@ static int	rd_contents_init(struct archive_read *,
 		    enum enctype, int, int);
 static int	rd_contents(struct archive_read *, const void **,
 		    size_t *, size_t *, uint64_t);
-static uint64_t	atol10(const char *, size_t);
-static uint64_t	atol8(const char *, size_t);
+static uint64_t	atou64(const char *, size_t, int);
 static size_t	atohex(unsigned char *, size_t, const char *, size_t);
 static time_t	parse_time(const char *p, size_t n);
 static int	heap_add_entry(struct archive_read *a,
@@ -1072,7 +1071,7 @@ rd_contents(struct archive_read *a, const void **buff, size_t *size,
  */
 
 static uint64_t
-atol10(const char *p, size_t char_cnt)
+atou64(const char *p, size_t char_cnt, int base)
 {
 	uint64_t l;
 	int digit;
@@ -1082,31 +1081,9 @@ atol10(const char *p, size_t char_cnt)
 
 	l = 0;
 	digit = *p - '0';
-	while (digit >= 0 && digit < 10  && char_cnt-- > 0) {
-		l = (l * 10) + digit;
+	while (digit >= 0 && digit < base && char_cnt-- > 0) {
+		l = (l * base) + digit;
 		digit = *++p - '0';
-	}
-	return (l);
-}
-
-static uint64_t
-atol8(const char *p, size_t char_cnt)
-{
-	uint64_t l;
-	int digit;
-
-	if (char_cnt == 0)
-		return (0);
-
-	l = 0;
-	while (char_cnt-- > 0) {
-		if (*p >= '0' && *p <= '7')
-			digit = *p - '0';
-		else
-			break;
-		p++;
-		l <<= 3;
-		l |= digit;
 	}
 	return (l);
 }
@@ -1178,42 +1155,42 @@ parse_time(const char *p, size_t n)
 	memset(&tm, 0, sizeof(tm));
 	if (n != 20)
 		return (t);
-	data = atol10(p, 4);
+	data = atou64(p, 4, 10);
 	if (data < 1900)
 		return (t);
 	tm.tm_year = (int)data - 1900;
 	p += 4;
 	if (*p++ != '-')
 		return (t);
-	data = atol10(p, 2);
+	data = atou64(p, 2, 10);
 	if (data < 1 || data > 12)
 		return (t);
 	tm.tm_mon = (int)data -1;
 	p += 2;
 	if (*p++ != '-')
 		return (t);
-	data = atol10(p, 2);
+	data = atou64(p, 2, 10);
 	if (data < 1 || data > 31)
 		return (t);
 	tm.tm_mday = (int)data;
 	p += 2;
 	if (*p++ != 'T')
 		return (t);
-	data = atol10(p, 2);
+	data = atou64(p, 2, 10);
 	if (data < 0 || data > 23)
 		return (t);
 	tm.tm_hour = (int)data;
 	p += 2;
 	if (*p++ != ':')
 		return (t);
-	data = atol10(p, 2);
+	data = atou64(p, 2, 10);
 	if (data < 0 || data > 59)
 		return (t);
 	tm.tm_min = (int)data;
 	p += 2;
 	if (*p++ != ':')
 		return (t);
-	data = atol10(p, 2);
+	data = atou64(p, 2, 10);
 	if (data < 0 || data > 60)
 		return (t);
 	tm.tm_sec = (int)data;
@@ -1804,7 +1781,7 @@ file_new(struct archive_read *a, struct xar *xar, struct xmlattr_list *list)
 	xar->xattr = NULL;
 	for (attr = list->first; attr != NULL; attr = attr->next) {
 		if (strcmp(attr->name, "id") == 0)
-			file->id = atol10(attr->value, strlen(attr->value));
+			file->id = atou64(attr->value, strlen(attr->value), 10);
 	}
 	file->nlink = 1;
 	if (heap_add_entry(a, &(xar->file_queue), file) != ARCHIVE_OK)
@@ -1848,7 +1825,7 @@ xattr_new(struct archive_read *a, struct xar *xar, struct xmlattr_list *list)
 	xar->xattr = xattr;
 	for (attr = list->first; attr != NULL; attr = attr->next) {
 		if (strcmp(attr->name, "id") == 0)
-			xattr->id = atol10(attr->value, strlen(attr->value));
+			xattr->id = atou64(attr->value, strlen(attr->value), 10);
 	}
 	/* Chain to xattr list. */
 	for (nx = &(xar->file->xattr_list);
@@ -2065,8 +2042,8 @@ xml_start(struct archive_read *a, const char *name, struct xmlattr_list *list)
 					xar->file->hdnext = xar->hdlink_orgs;
 					xar->hdlink_orgs = xar->file;
 				} else {
-					xar->file->link = (unsigned)atol10(attr->value,
-					    strlen(attr->value));
+					xar->file->link = (unsigned)atou64(attr->value,
+					    strlen(attr->value), 10);
 					if (xar->file->link > 0)
 						if (add_link(a, xar, xar->file) != ARCHIVE_OK) {
 							return (ARCHIVE_FATAL);
@@ -2694,10 +2671,10 @@ xml_data(void *userData, const char *s, size_t len)
 #endif
 	switch (xar->xmlsts) {
 	case TOC_CHECKSUM_OFFSET:
-		xar->toc_chksum_offset = atol10(s, len);
+		xar->toc_chksum_offset = atou64(s, len, 10);
 		break;
 	case TOC_CHECKSUM_SIZE:
-		xar->toc_chksum_size = atol10(s, len);
+		xar->toc_chksum_size = atou64(s, len, 10);
 		break;
 	default:
 		break;
@@ -2753,25 +2730,25 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	case FILE_INODE:
 		xar->file->has |= HAS_INO;
-		xar->file->ino64 = atol10(s, len);
+		xar->file->ino64 = atou64(s, len, 10);
 		break;
 	case FILE_DEVICE_MAJOR:
 		xar->file->has |= HAS_DEVMAJOR;
-		xar->file->devmajor = (dev_t)atol10(s, len);
+		xar->file->devmajor = (dev_t)atou64(s, len, 10);
 		break;
 	case FILE_DEVICE_MINOR:
 		xar->file->has |= HAS_DEVMINOR;
-		xar->file->devminor = (dev_t)atol10(s, len);
+		xar->file->devminor = (dev_t)atou64(s, len, 10);
 		break;
 	case FILE_DEVICENO:
 		xar->file->has |= HAS_DEV;
-		xar->file->dev = (dev_t)atol10(s, len);
+		xar->file->dev = (dev_t)atou64(s, len, 10);
 		break;
 	case FILE_MODE:
 		xar->file->has |= HAS_MODE;
 		xar->file->mode =
 		    (xar->file->mode & AE_IFMT) |
-		    ((mode_t)(atol8(s, len)) & ~AE_IFMT);
+		    ((mode_t)(atou64(s, len, 8)) & ~AE_IFMT);
 		break;
 	case FILE_GROUP:
 		xar->file->has |= HAS_GID;
@@ -2779,7 +2756,7 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	case FILE_GID:
 		xar->file->has |= HAS_GID;
-		xar->file->gid = atol10(s, len);
+		xar->file->gid = atou64(s, len, 10);
 		break;
 	case FILE_USER:
 		xar->file->has |= HAS_UID;
@@ -2787,7 +2764,7 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	case FILE_UID:
 		xar->file->has |= HAS_UID;
-		xar->file->uid = atol10(s, len);
+		xar->file->uid = atou64(s, len, 10);
 		break;
 	case FILE_CTIME:
 		xar->file->has |= HAS_TIME | HAS_CTIME;
@@ -2803,15 +2780,15 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	case FILE_DATA_LENGTH:
 		xar->file->has |= HAS_DATA;
-		xar->file->length = atol10(s, len);
+		xar->file->length = atou64(s, len, 10);
 		break;
 	case FILE_DATA_OFFSET:
 		xar->file->has |= HAS_DATA;
-		xar->file->offset = atol10(s, len);
+		xar->file->offset = atou64(s, len, 10);
 		break;
 	case FILE_DATA_SIZE:
 		xar->file->has |= HAS_DATA;
-		xar->file->size = atol10(s, len);
+		xar->file->size = atou64(s, len, 10);
 		break;
 	case FILE_DATA_A_CHECKSUM:
 		xar->file->a_sum.len = atohex(xar->file->a_sum.val,
@@ -2823,15 +2800,15 @@ xml_data(void *userData, const char *s, size_t len)
 		break;
 	case FILE_EA_LENGTH:
 		xar->file->has |= HAS_XATTR;
-		xar->xattr->length = atol10(s, len);
+		xar->xattr->length = atou64(s, len, 10);
 		break;
 	case FILE_EA_OFFSET:
 		xar->file->has |= HAS_XATTR;
-		xar->xattr->offset = atol10(s, len);
+		xar->xattr->offset = atou64(s, len, 10);
 		break;
 	case FILE_EA_SIZE:
 		xar->file->has |= HAS_XATTR;
-		xar->xattr->size = atol10(s, len);
+		xar->xattr->size = atou64(s, len, 10);
 		break;
 	case FILE_EA_A_CHECKSUM:
 		xar->file->has |= HAS_XATTR;
@@ -3331,7 +3308,7 @@ expat_read_toc(struct archive_read *a)
 
 		d = NULL;
 		r = rd_contents(a, &d, &outbytes, &used, xar->toc_remaining);
-		if (r != ARCHIVE_OK) {
+		if (r != ARCHIVE_OK || outbytes > INT_MAX) {
 			XML_ParserFree(parser);
 			return (r);
 		}
