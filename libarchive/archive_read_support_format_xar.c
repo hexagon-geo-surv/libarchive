@@ -3638,7 +3638,7 @@ xmllite_read_toc(struct archive_read *a)
 				goto out;
 			}
 
-			xml_data(a, as.s, (int)archive_strlen(&as));
+			xml_data(a, as.s, archive_strlen(&as));
 			archive_string_free(&as);
 
 		case XmlNodeType_None:
