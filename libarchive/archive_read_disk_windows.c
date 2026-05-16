@@ -358,6 +358,8 @@ la_linkname_from_handle(HANDLE h, wchar_t **linkname, int *linktype)
 	}
 
 	indata = malloc(MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
+	if (indata == NULL)
+		return (-1);
 	ret = DeviceIoControl(h, FSCTL_GET_REPARSE_POINT, NULL, 0, indata,
 	    1024, &inbytes, NULL);
 	if (ret == 0) {
