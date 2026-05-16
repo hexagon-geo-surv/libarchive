@@ -1634,6 +1634,8 @@ tree_push(struct tree *t, const wchar_t *path, const wchar_t *full_path,
 	struct tree_entry *te;
 
 	te = calloc(1, sizeof(*te));
+	if (te == NULL)
+		return;
 	te->next = t->stack;
 	te->parent = t->current;
 	if (te->parent)
