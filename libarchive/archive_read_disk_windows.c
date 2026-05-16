@@ -1708,6 +1708,8 @@ tree_open(const wchar_t *path, int symlink_mode, int restore_time)
 	struct tree *t;
 
 	t = calloc(1, sizeof(*t));
+	if (t == NULL)
+		return (NULL);
 	archive_string_init(&(t->full_path));
 	archive_string_init(&t->path);
 	if (archive_wstring_ensure(&t->path, 15) == NULL) {
